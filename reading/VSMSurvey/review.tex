@@ -1,0 +1,72 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\begin{document}
+
+\title{Paper Review - From Frequency to Meaning: Vector Space Models of Semantics}
+\author{Abhirut Gupta}
+
+\maketitle
+
+\begin{abstract}
+Survey of Vector Space Models - models for understanding human language. Categorized into three kinds based on the type of matrix used for representation -
+
+\begin{itemize}
+\item Term-document models - Rows are terms and columns are documents
+\item Word-context models - Rows are words, and columns are context like phrases, sentences and document (term-document models are a special case)
+\item Pair-pattern models - Rows are pairs of words and columns are patterns they appear together in
+\end{itemize}
+
+The values in the matrices are frequency statistics gathered from free text. This is used to differentiate from models where values are not frequency statistics and are not treated as VSMs in this paper. The paper presents an overview of these models, an overview of linguistic and mathematical processing that is done to create them from text, an example open-source software for each model, and the broad applications of each of these models. These matrices are an efforts to implement the abstract \textit{distributional hypothesis} - words that occur in similar contexts, have similar meanings. The broad concept is known as \textit{statistical semantics hypothesis} - statistical patterns of human words can be used to figure out what they mean.
+\end{abstract}
+\section{Models}
+
+\subsection{The Term-Document Matrix}
+The rows represent terms (which are usually words) and the columns represent documents. The document vector (column of the matrix) represents the document as a bag of words, and in some sense represents the meaning of the document. The sequential order of words, structure of phrases, and paragraphs is lost, but it has been found to work well in IR. An intuitive explanation is that the topic of the document will influence the author's choice of words. Two documents which are about the same topic, will probably have similar pattern of numbers in the vector.
+
+\subsection{The Word-Context Matrix}
+To measure similarity of words, document is not necessarily the optimal length. The columns of these matrices are the \textit{context} in which a word appears, where the context can be words, phrases, sentences, paragraphs, chapters, or documents. The context can also be sequence of characters of patterns, or grammatical dependencies (Sahlgren?s (2006) thesis). Firth (1957, p. 11) said, ``You shall know a word by the company it keeps."
+
+\subsection{The Pair-Pattern Matrix}
+Similarity of relations can be measure with a pair-pattern matrix. Rows correspond to pair of words, and columns correspond to the patterns that represent these pair of words in text. \textit{extended distributional hypothesis} - patterns that frequently co-occur with similar pair of words tend to have similar meanings. \textit{latent relation hypothesis} Pair of words that co-occur in similar patterns tend to have similar semantic relations.
+
+\subsection*{Similarities}
+\textit{Attributional Similarity} between two words $ sim_a(a,b) \in {\rm I\!R} $ (from the word-context matrix) is based on the similarity of their properties. \textit{Relational Similarity} between pair of words $ sim_r(a:b,c:d) \in {\rm I\!R} $ (from the pair-pattern matrix) is the similarity between the relations $a:b$ and $c:d$. While it might be tempting to reduce the relational similarity in terms of attributional similarity as follows $sim_r(a:b,c:d) = sim_a(a,c) + sim_a(b+d)$, it's not really correct. Consider three pairs of words which are in similar relations $a:b$, $c:d$, and $e:f$, while the attribute similarity between $a$, $c$, and $e$ might be high also between $b$, $d$, and $f$ might be high, we cannot infer that $a:d$ and $c:f$ are in similar relations. In computational linguistics, the term \textit{semantic relatedness} is used to convey \textit{attributional similarity}, \textit{semantic similarity} is used to refer to words that share a hypernym (a car and a bicycle are \textit{semantically similar}), and \textit{semantically associated} if they co-occur frequently.
+
+\subsection{Other Modelss}
+Higher order tensors are also used to represent word similarities. An example is the word-word-pattern tensor used in Turney (2007).
+
+\section{Liguistic Processing for Vector Space Models}
+Input is assumed to be free text
+\begin{enumerate}
+\item \textbf{Tokenization} - Split text into tokens taking care of punctuations, multi-word terms, remove stop words. Harder for languages with no space between tokens (Chienese) - use lexicon, but still might not result in unique tokenization.
+\item \textbf{Normalization} - Different surface forms of same words. Case folding and stemming are common operations. Operations easier in English but might be a problem in other languages. Increases recall for IR, decreases precision.
+\item \textbf{Annotation} - Same surface form of words might have different meaning based on context (verbs and nouns in English or homonyms). POS tagging, word sense tagging, parsing (tagging roles to words. Reduces recall, increases precision.
+\end{enumerate}
+
+\section{Mathematical Processing for Vector Space Models}
+The four broad steps are - generate matrix of frequencies, adjust weights of elements in the matrix (common words have high frequencies but less information than rare words), reduce dimensionality (sparse matrix), calculate similarities. Lowe (2001) gives a good summary of mathematical processing for word?context VSMs.
+
+\subsection{Building the Frequency Matrix}
+Conceptually similar, but engineering challenges on a large corpus. One scan to store events (a word and it's context is one event) and their frequencies in a hash-table, database or a search index. Then use the resulting structure to create the matrix in sparse representation.
+
+\subsection{Weighting the Elements}
+A surprising event has higher information content than an expected event (Shannon, 1948). Use tf-idfs, length normalization (in absence of which search engines prefer longer documents), term weighting to correct for co-related terms, feature selection (some terms get weight of 0 and are effectively removed from the matrix). Pointwise Mutual Information (PMI) is an alternative to tf-idf. Positive Pointwise Mutual Information is often found to work better. It is a measure of how much information the occurrence of one event gives about the other. For independent events PMI is 0. PPMI returns 0 for negative PMI values.
+
+Let \textbf{F} be a word context frequency matrix with \textbf{F}$\in {\rm I\!R}^{n_r \times n_c}$. $i^{th}$ row of \textbf{F} is the row vector $f_{i:}$ and corresponds to the word $w_i$, and the $j^{th}$ column of \textbf{F} i the column vector $f_{:j}$ and corresponds to the context $c_j$. $f_{ij}$ is the number of times $w_i$ appears in context $c_j$
+\begin{align*}
+& p_{ij} = \frac{f_{ij}}{\sum_{a=1}^{n_r}\sum_{b=1}^{n_c}f_{ab}} & \\
+\\
+p_{i*} = \frac{\sum_{b=1}^{n_c}f_{ib}}{\sum_{a=1}^{n_r}\sum_{b=1}^{n_c}f_{ab}}  &  & p_{*j} = \frac{\sum_{a=1}^{n_r}f_{aj}}{\sum_{a=1}^{n_r}\sum_{b=1}^{n_c}f_{ab}} \\
+\\
+pmi_{ij} = log(\frac{p_{ij}}{p_{i*} \times p_{*j}})\\
+\end{align*}
+\begin{equation*}
+\begin{split}
+ppmi_{ij} & = pmi_{ij} \text{  if } pmi_{ij}  > 0 \\
+		& = 0 \text{  otherwise}
+\end{split}
+\end{equation*}
+
+
+\end{document}
